@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import random
-
+import os
+if __name__ == "__main__":
+        os.system("uvicorn main:app --host 0.0.0.0 --port 8000")
 app = FastAPI(title="AgroFusion AI")
 app.add_middleware(
     CORSMiddleware,

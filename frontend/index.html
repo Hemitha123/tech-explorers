@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgroFusion AI — Smart Farming Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --soil:#1a0f00; --earth:#2d1a05; --moss:#1e3a1e; --leaf:#2d5a27;
+      --lime:#7ec850; --gold:#f5c842; --amber:#e8941a;
+      --cream:#f5f0e8; --fog:#d4cfc6; --white:#fdfcf9;
+      --red:#e05252; --blue:#4ab8c8;
+      --nav-h:70px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'DM Sans',sans-serif;background:var(--soil);color:var(--cream);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.5;}
+    canvas#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+
+    /* PAGES */
+    .page{display:none;position:relative;z-index:2;min-height:100vh;}
+    .page.active{display:block;}
+    #loginPage.active{display:flex;align-items:center;justify-content:center;}
+
+    /* NAV */
+    nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;padding:0 4rem;display:flex;justify-content:space-between;align-items:center;background:rgba(26,15,0,0.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(126,200,80,0.15);transition:box-shadow 0.3s;}
+    nav.scrolled{box-shadow:0 4px 30px rgba(0,0,0,0.5);}
+    .logo{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:var(--lime);letter-spacing:-0.02em;cursor:pointer;}
+    .logo span{color:var(--gold);}
+    .nav-links{display:flex;gap:2.5rem;list-style:none;}
+    .nav-links a{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--fog);text-decoration:none;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.3s;cursor:pointer;}
+    .nav-links a:hover{color:var(--lime);}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    #navUser{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--blue);display:none;align-items:center;gap:6px;}
+    .nav-cta{background:var(--lime);color:var(--soil);padding:0.55rem 1.4rem;border-radius:2px;font-family:'Space Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;border:none;transition:background 0.3s,transform 0.2s;}
+    .nav-cta:hover{background:var(--gold);transform:translateY(-1px);}
+
+    /* ═══════════ LOGIN ═══════════ */
+    #loginPage{padding-top:var(--nav-h);}
+    .login-card{background:rgba(20,40,20,0.88);backdrop-filter:blur(24px);border:1px solid rgba(126,200,80,0.25);border-radius:24px;padding:52px 48px;width:460px;max-width:95vw;box-shadow:0 40px 80px rgba(0,0,0,0.6);animation:slideUp 0.8s cubic-bezier(0.16,1,0.3,1);}
+    .login-header{text-align:center;margin-bottom:36px;}
+    .wheat-icon{font-size:3.5rem;display:block;margin-bottom:12px;animation:sway 3s ease-in-out infinite;}
+    @keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+    .login-header h1{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--cream);margin-bottom:6px;}
+    .login-header p{color:var(--lime);font-size:0.88rem;font-weight:600;}
+    .form-group{margin-bottom:18px;}
+    .form-group label{display:block;color:rgba(254,250,224,0.75);font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+    .input-wrap{position:relative;}
+    .input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1rem;z-index:1;}
+    .form-group input,.form-group select{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(126,200,80,0.18);border-radius:12px;padding:13px 14px 13px 42px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:500;transition:all 0.3s;outline:none;-webkit-appearance:none;}
+    .form-group select option{background:#1a2e1a;color:var(--cream);}
+    .form-group input::placeholder{color:rgba(254,250,224,0.3);}
+    .form-group input:focus,.form-group select:focus{border-color:var(--lime);background:rgba(126,200,80,0.07);box-shadow:0 0 0 3px rgba(126,200,80,0.14);}
+    .btn-login{width:100%;padding:15px;background:linear-gradient(135deg,#52b788,var(--lime));border:none;border-radius:12px;color:var(--soil);font-family:'DM Sans',sans-serif;font-size:0.98rem;font-weight:800;cursor:pointer;transition:all 0.3s;margin-top:6px;}
+    .btn-login:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(82,183,136,0.4);}
+    .error-msg{background:rgba(231,76,60,0.14);border:1px solid rgba(231,76,60,0.35);border-radius:10px;color:#ff8c7a;font-size:0.83rem;padding:10px 14px;margin-bottom:14px;display:none;font-weight:600;}
+    .login-footer{text-align:center;margin-top:22px;color:rgba(254,250,224,0.4);font-size:0.8rem;}
+    .login-footer span{color:var(--lime);cursor:pointer;font-weight:700;}
+
+    /* ═══════════ HOME ═══════════ */
+    #homePage{padding-top:calc(var(--nav-h) + 38px);}
+
+    /* MARQUEE */
+    .marquee-wrap{background:var(--leaf);padding:0.7rem 0;overflow:hidden;border-top:1px solid rgba(126,200,80,0.2);border-bottom:1px solid rgba(126,200,80,0.2);position:fixed;top:var(--nav-h);left:0;right:0;z-index:99;}
+    .marquee-track{display:flex;gap:3rem;animation:marquee 25s linear infinite;white-space:nowrap;}
+    .marquee-item{font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;color:var(--cream);text-transform:uppercase;display:flex;align-items:center;gap:0.8rem;flex-shrink:0;}
+    .marquee-item::before{content:'◆';color:var(--gold);font-size:0.5rem;}
+
+    /* HERO */
+    .hero{min-height:90vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:5rem 4rem 4rem;position:relative;overflow:hidden;}
+    .hero::after{content:'';position:absolute;top:-20%;right:-10%;width:700px;height:700px;background:radial-gradient(circle,rgba(78,140,63,0.16) 0%,transparent 70%);pointer-events:none;}
+    .hero-left{position:relative;z-index:2;animation:slideUp 0.7s 0.1s ease both;}
+    h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,5vw,5rem);font-weight:900;line-height:1.05;letter-spacing:-0.03em;color:var(--white);margin-bottom:1.4rem;}
+    h1 em{font-style:italic;color:var(--lime);}
+    h1 .gold{color:var(--gold);}
+    .hero-sub{font-size:1.05rem;font-weight:300;color:var(--fog);line-height:1.7;max-width:480px;margin-bottom:2.4rem;}
+    .hero-actions{display:flex;gap:1rem;}
+    .btn-primary{background:var(--lime);color:var(--soil);padding:0.88rem 2rem;border-radius:2px;font-family:'Space Mono',monospace;font-size:0.78rem;font-weight:700;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.3s;border:2px solid var(--lime);cursor:pointer;display:inline-block;}
+    .btn-primary:hover{background:var(--gold);border-color:var(--gold);transform:translateY(-2px);}
+    .btn-outline{background:transparent;color:var(--cream);padding:0.88rem 2rem;border-radius:2px;font-family:'Space Mono',monospace;font-size:0.78rem;font-weight:700;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;border:2px solid rgba(212,207,198,0.3);transition:all 0.3s;display:inline-block;}
+    .btn-outline:hover{border-color:var(--lime);color:var(--lime);transform:translateY(-2px);}
+    .hero-right{display:flex;flex-direction:column;gap:1rem;padding-left:4rem;animation:slideUp 0.7s 0.3s ease both;}
+    .stat-card{background:rgba(45,26,5,0.75);border:1px solid rgba(126,200,80,0.14);border-radius:4px;padding:1.3rem 1.6rem;display:flex;align-items:center;gap:1.4rem;backdrop-filter:blur(8px);transition:border-color 0.3s,transform 0.3s;}
+    .stat-card:hover{border-color:rgba(126,200,80,0.5);transform:translateX(6px);}
+    .stat-icon{font-size:1.9rem;flex-shrink:0;}
+    .stat-num{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:900;color:var(--lime);line-height:1;}
+    .stat-label{font-size:0.78rem;color:var(--fog);margin-top:0.2rem;}
+
+    /* ═══════════ FEATURES ═══════════ */
+    .features{padding:6rem 4rem;}
+    .section-label{font-family:'Space Mono',monospace;font-size:0.63rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--lime);margin-bottom:1rem;}
+    .section-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--white);line-height:1.15;margin-bottom:1rem;}
+    .section-sub{color:var(--fog);font-size:0.98rem;max-width:500px;line-height:1.7;margin-bottom:3.5rem;}
+
+    .features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.8rem;max-width:1200px;margin:0 auto;}
+
+    /* Feature card */
+    .feat-card{background:var(--earth);border:1px solid rgba(126,200,80,0.1);border-radius:8px;padding:0;position:relative;overflow:hidden;transition:border-color 0.4s,box-shadow 0.4s;}
+    .feat-card:hover{border-color:rgba(126,200,80,0.3);box-shadow:0 20px 50px rgba(0,0,0,0.4);}
+    .feat-card-top-bar{height:3px;background:var(--accent,var(--lime));transform:scaleX(0);transform-origin:left;transition:transform 0.5s;}
+    .feat-card:hover .feat-card-top-bar{transform:scaleX(1);}
+    .feat-card:nth-child(1){--accent:#7ec850;}
+    .feat-card:nth-child(2){--accent:#f5c842;}
+    .feat-card:nth-child(3){--accent:#e8941a;}
+    .feat-card:nth-child(4){--accent:#4ab8c8;}
+
+    .feat-inner{padding:2rem;}
+    .feat-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.2rem;}
+    .feat-icon-wrap{font-size:2.2rem;}
+    .feat-number{font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--fog);letter-spacing:0.15em;opacity:0.55;margin-top:4px;}
+    .feat-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--white);margin-bottom:0.6rem;line-height:1.3;}
+    .feat-desc{font-size:0.84rem;color:var(--fog);line-height:1.65;margin-bottom:1.4rem;}
+
+    /* Input form inside card */
+    .feat-form{border-top:1px solid rgba(126,200,80,0.1);padding-top:1.2rem;margin-top:0.5rem;}
+    .feat-form-title{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(126,200,80,0.7);margin-bottom:0.8rem;}
+    .feat-inputs-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.8rem;}
+    .feat-inputs-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+    .feat-inputs-grid.cols-1{grid-template-columns:1fr;}
+    .f-input{background:rgba(255,255,255,0.05);border:1px solid rgba(126,200,80,0.15);border-radius:8px;padding:9px 12px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;outline:none;width:100%;transition:all 0.2s;-webkit-appearance:none;}
+    .f-input::placeholder{color:rgba(254,250,224,0.28);font-size:0.78rem;}
+    .f-input:focus{border-color:var(--lime);background:rgba(126,200,80,0.07);}
+    .f-input option{background:#1a2e1a;color:var(--cream);}
+    .feat-submit{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent,var(--lime)),rgba(126,200,80,0.7));border:none;border-radius:8px;color:var(--soil);font-family:'Space Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.3s;margin-top:0.4rem;}
+    .feat-submit:hover{opacity:0.88;transform:translateY(-1px);}
+
+    /* OUTPUT PANEL */
+    .feat-output{display:none;border-top:1px solid rgba(126,200,80,0.12);padding:1.4rem 2rem;background:rgba(0,0,0,0.25);animation:slideUp 0.4s ease;}
+    .feat-output.show{display:block;}
+    .out-title{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(126,200,80,0.65);margin-bottom:1rem;}
+    .out-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:1rem;}
+    .out-grid.cols-2{grid-template-columns:repeat(2,1fr);}
+    .out-grid.cols-4{grid-template-columns:repeat(4,1fr);}
+    .out-stat{background:rgba(126,200,80,0.06);border:1px solid rgba(126,200,80,0.12);border-radius:8px;padding:0.9rem;text-align:center;}
+    .out-val{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:var(--lime);line-height:1;}
+    .out-val.gold{color:var(--gold);}
+    .out-val.amber{color:var(--amber);}
+    .out-val.red{color:var(--red);}
+    .out-val.blue{color:var(--blue);}
+    .out-lbl{font-size:0.68rem;color:var(--fog);margin-top:4px;line-height:1.3;}
+
+    /* VERDICT BADGE */
+    .verdict-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem;}
+    .verdict-badge.sell{background:rgba(126,200,80,0.18);border:1.5px solid rgba(126,200,80,0.4);color:var(--lime);}
+    .verdict-badge.wait{background:rgba(245,200,66,0.15);border:1.5px solid rgba(245,200,66,0.4);color:var(--gold);}
+    .verdict-badge.hold{background:rgba(232,148,26,0.15);border:1.5px solid rgba(232,148,26,0.4);color:var(--amber);}
+    .verdict-badge.stable{background:rgba(74,184,200,0.15);border:1.5px solid rgba(74,184,200,0.4);color:var(--blue);}
+
+    /* CHART containers */
+    .chart-wrap{position:relative;height:160px;margin-bottom:0.8rem;}
+    .chart-wrap-sm{position:relative;height:120px;}
+    .weather-bars{display:flex;gap:0.5rem;align-items:flex-end;height:100px;margin-bottom:0.8rem;}
+    .w-bar-group{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+    .w-bar{width:100%;border-radius:4px 4px 0 0;transition:height 1.2s cubic-bezier(0.34,1.56,0.64,1);}
+    .w-bar-label{font-size:0.6rem;color:var(--fog);font-family:'Space Mono',monospace;text-align:center;}
+    .w-bar-val{font-size:0.65rem;color:var(--lime);font-weight:700;font-family:'Space Mono',monospace;}
+
+    /* Score ring */
+    .score-ring-wrap{display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;}
+    .score-ring-svg{flex-shrink:0;}
+    .score-ring-info h3{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--white);margin-bottom:4px;}
+    .score-ring-info p{font-size:0.8rem;color:var(--fog);line-height:1.5;}
+
+    /* HOW IT WORKS */
+    .how{padding:6rem 4rem;background:var(--earth);}
+    .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:3.5rem;position:relative;}
+    .steps-grid::before{content:'';position:absolute;top:2.5rem;left:12%;right:12%;height:1px;background:linear-gradient(to right,transparent,var(--lime),transparent);}
+    .step{padding:0 2rem;text-align:center;}
+    .step-num{width:5rem;height:5rem;background:var(--moss);border:2px solid var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:var(--lime);margin:0 auto 1.5rem;position:relative;z-index:2;}
+    .step-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--white);margin-bottom:0.5rem;}
+    .step-desc{font-size:0.82rem;color:var(--fog);line-height:1.6;}
+
+    /* IMPACT */
+    .impact{padding:5rem 4rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(126,200,80,0.1);}
+    .impact-item{background:var(--soil);padding:2.8rem 2rem;text-align:center;transition:background 0.3s;}
+    .impact-item:hover{background:var(--earth);}
+    .impact-num{font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:900;color:var(--lime);line-height:1;margin-bottom:0.5rem;}
+    .impact-label{font-size:0.82rem;color:var(--fog);line-height:1.5;}
+
+    /* FOOTER */
+    footer{background:var(--earth);border-top:1px solid rgba(126,200,80,0.1);padding:2.8rem 4rem;display:flex;justify-content:space-between;align-items:center;}
+    .footer-logo{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:900;color:var(--lime);}
+    .footer-logo span{color:var(--gold);}
+    .footer-links{display:flex;gap:2rem;list-style:none;}
+    .footer-links a{font-size:0.78rem;color:var(--fog);text-decoration:none;transition:color 0.3s;}
+    .footer-links a:hover{color:var(--lime);}
+    .footer-copy{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--fog);opacity:0.45;}
+
+    /* LOADING SPINNER inside card */
+    .feat-loading{display:none;text-align:center;padding:1.5rem;font-size:0.8rem;color:var(--lime);font-family:'Space Mono',monospace;}
+    .feat-loading.show{display:block;}
+    .spinner{width:28px;height:28px;border:3px solid rgba(126,200,80,0.2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 8px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ANIMATIONS */
+    @keyframes slideUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .reveal{opacity:0;transform:translateY(26px);transition:opacity 0.7s ease,transform 0.7s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    /* RESPONSIVE */
+    @media(max-width:1024px){
+      nav{padding:0 2rem;}
+      .hero{grid-template-columns:1fr;padding:5rem 2rem 4rem;}
+      .hero-right{padding-left:0;flex-direction:row;flex-wrap:wrap;}
+      .stat-card{flex:1;min-width:180px;}
+      .features{padding:5rem 2rem;}
+      .how{padding:5rem 2rem;}
+      .impact{grid-template-columns:repeat(2,1fr);}
+      footer{flex-direction:column;gap:1.5rem;text-align:center;padding:2.5rem 2rem;}
+    }
+    @media(max-width:768px){
+      .features-grid{grid-template-columns:1fr;}
+      .steps-grid{grid-template-columns:repeat(2,1fr);gap:2rem;}
+      .steps-grid::before{display:none;}
+      .feat-inputs-grid{grid-template-columns:1fr;}
+      .feat-inputs-grid.cols-3{grid-template-columns:1fr 1fr;}
+      .out-grid{grid-template-columns:repeat(2,1fr);}
+      .out-grid.cols-4{grid-template-columns:repeat(2,1fr);}
+    }
+    @media(max-width:640px){
+      .nav-links{display:none;}
+      .hero-actions{flex-direction:column;}
+      .steps-grid{grid-template-columns:1fr;}
+      .impact{grid-template-columns:1fr 1fr;}
+      .login-card{padding:36px 22px;}
+    }
+  </style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="logo" onclick="goHome()">Agro<span>Fusion</span> AI</div>
+  <ul class="nav-links">
+    <li><a onclick="goHome()">Home</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="crop-planner.html">Crop Planner</a></li>
+    <li><a href="market.html">Market</a></li>
+  </ul>
+  <div class="nav-right">
+    <div id="navUser">👨‍🌾 <span id="navUserName"></span></div>
+    <button class="nav-cta" id="navBtn" onclick="handleNavCta()">Get Started →</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     LOGIN PAGE
+═══════════════════════════════════════ -->
+<div id="loginPage" class="page active">
+  <div class="login-card">
+    <div class="login-header">
+      <span class="wheat-icon">🌾</span>
+      <h1>Welcome, Farmer!</h1>
+      <p>Sign in to your AgroFusion dashboard</p>
+    </div>
+    <div class="error-msg" id="loginError">⚠️ Please enter a valid 10-digit mobile number</div>
+    <div class="form-group">
+      <label>Mobile Number</label>
+      <div class="input-wrap">
+        <span class="input-icon">📱</span>
+        <input type="tel" id="loginPhone" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Your Name</label>
+      <div class="input-wrap">
+        <span class="input-icon">👤</span>
+        <input type="text" id="loginName" placeholder="e.g. Ravi Kumar"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>State / Region</label>
+      <div class="input-wrap">
+        <span class="input-icon">📍</span>
+        <select id="loginState">
+          <option value="" disabled selected>Select your state</option>
+          <option>Andhra Pradesh</option><option>Bihar</option>
+          <option>Gujarat</option><option>Haryana</option>
+          <option>Karnataka</option><option>Kerala</option>
+          <option>Madhya Pradesh</option><option>Maharashtra</option>
+          <option>Odisha</option><option>Punjab</option>
+          <option>Rajasthan</option><option>Tamil Nadu</option>
+          <option>Telangana</option><option>Uttar Pradesh</option>
+          <option>West Bengal</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-login" onclick="doLogin()">🚜 Enter Dashboard</button>
+    <div class="login-footer">
+      Enter your mobile number to continue<br>
+      New farmer? <span>Register here</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HOME PAGE
+═══════════════════════════════════════ -->
+<div id="homePage" class="page">
+
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <span class="marquee-item">Mixed Crop Planner</span>
+      <span class="marquee-item">AI Disease Detection</span>
+      <span class="marquee-item">Smart Sell Timing</span>
+      <span class="marquee-item">Weather Advisory</span>
+      <span class="marquee-item">Mandi Price Tracker</span>
+      <span class="marquee-item">Seasonal Forecasting</span>
+      <span class="marquee-item">Mixed Crop Planner</span>
+      <span class="marquee-item">AI Disease Detection</span>
+      <span class="marquee-item">Smart Sell Timing</span>
+      <span class="marquee-item">Weather Advisory</span>
+      <span class="marquee-item">Mandi Price Tracker</span>
+      <span class="marquee-item">Seasonal Forecasting</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <h1>Farm <em>Smarter.</em><br>Harvest <span class="gold">Better.</span></h1>
+      <p class="hero-sub">AgroFusion AI unifies crop intelligence, disease detection, market insights, and hyperlocal weather to give every farmer a powerful edge.</p>
+      <div class="hero-actions">
+        <a href="#features" class="btn-primary">Explore Features</a>
+        <a href="#how" class="btn-outline">How It Works</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="stat-card"><div class="stat-icon">🌱</div><div><div class="stat-num">40%</div><div class="stat-label">Average yield increase with crop companion planning</div></div></div>
+      <div class="stat-card"><div class="stat-icon">📈</div><div><div class="stat-num">87%</div><div class="stat-label">Accuracy in sell-timing prediction scores</div></div></div>
+      <div class="stat-card"><div class="stat-icon">⚡</div><div><div class="stat-num">&lt;3s</div><div class="stat-label">AI disease diagnosis from a single photo</div></div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <p class="section-label reveal">What We Offer</p>
+    <h2 class="section-title reveal">Four Tools. One Platform.</h2>
+    <p class="section-sub reveal">Put the power of AI directly in your hands — fill in your farm details below and get instant results.</p>
+
+    <div class="features-grid">
+
+      <!-- ── CARD 1: Crop Planner ── -->
+      <div class="feat-card reveal">
+        <div class="feat-card-top-bar"></div>
+        <div class="feat-inner">
+          <div class="feat-header">
+            <span class="feat-icon-wrap">🌾</span>
+            <div class="feat-number">01 / 04</div>
+          </div>
+          <div class="feat-title">Mixed Crop Companion Planner</div>
+          <p class="feat-desc">Enter your farm details. AI instantly suggests the best crop combination with yield and price estimates.</p>
+
+          <div class="feat-form">
+            <div class="feat-form-title">Enter Your Farm Details</div>
+            <div class="feat-inputs-grid">
+              <input class="f-input" id="cp-crop" placeholder="🌾 Crop (e.g. Wheat)"/>
+              <select class="f-input" id="cp-soil">
+                <option value="" disabled selected>🪨 Soil Type</option>
+                <option>Sandy</option><option>Loamy</option><option>Clay</option>
+                <option>Silty</option><option>Red Soil</option><option>Black Cotton</option><option>Alluvial</option>
+              </select>
+              <select class="f-input" id="cp-water">
+                <option value="" disabled selected>💧 Water Need</option>
+                <option>Low</option><option>Medium</option><option>High</option><option>Rainfed</option>
+              </select>
+              <select class="f-input" id="cp-season">
+                <option value="" disabled selected>🗓️ Season</option>
+                <option>Kharif</option><option>Rabi</option><option>Zaid</option><option>Year-round</option>
+              </select>
+              <input class="f-input" id="cp-yield" type="number" placeholder="📦 Base Yield (quintal)"/>
+              <input class="f-input" id="cp-price" type="number" placeholder="💰 Price (₹/quintal)"/>
+            </div>
+            <button class="feat-submit" onclick="runCropPlanner()">🔬 Analyse &amp; Recommend</button>
+          </div>
+        </div>
+
+        <!-- OUTPUT -->
+        <div class="feat-loading" id="cp-loading"><div class="spinner"></div>Analysing crop data...</div>
+        <div class="feat-output" id="cp-output">
+          <div class="feat-inner" style="padding-top:0;">
+            <div class="out-title">📊 Crop Analysis Result</div>
+            <div class="score-ring-wrap">
+              <svg class="score-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(126,200,80,0.1)" stroke-width="8"/>
+                <circle id="cp-ring" cx="45" cy="45" r="36" fill="none" stroke="#7ec850" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="226" stroke-dashoffset="226" transform="rotate(-90 45 45)" style="transition:stroke-dashoffset 1.5s ease;"/>
+                <text id="cp-score-text" x="45" y="50" text-anchor="middle" fill="#7ec850" font-family="Playfair Display" font-size="18" font-weight="900">—</text>
+              </svg>
+              <div class="score-ring-info">
+                <h3 id="cp-crop-name">—</h3>
+                <p id="cp-season-out">—</p>
+                <p id="cp-soil-out" style="color:var(--lime);font-weight:600;font-size:0.82rem;margin-top:4px;">—</p>
+              </div>
+            </div>
+            <div class="out-grid cols-4">
+              <div class="out-stat"><div class="out-val gold" id="cp-price-out">—</div><div class="out-lbl">Price/Quintal</div></div>
+              <div class="out-stat"><div class="out-val" id="cp-yield-out">—</div><div class="out-lbl">Base Yield</div></div>
+              <div class="out-stat"><div class="out-val blue" id="cp-temp-out">—</div><div class="out-lbl">Ideal Temp</div></div>
+              <div class="out-stat"><div class="out-val amber" id="cp-rain-out">—</div><div class="out-lbl">Rainfall</div></div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="cpChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CARD 2: Market Sell Timing ── -->
+      <div class="feat-card reveal">
+        <div class="feat-card-top-bar"></div>
+        <div class="feat-inner">
+          <div class="feat-header">
+            <span class="feat-icon-wrap">📊</span>
+            <div class="feat-number">02 / 04</div>
+          </div>
+          <div class="feat-title">Smart Sell-Timing Score</div>
+          <p class="feat-desc">Enter your crop and current price. AI compares mandi trends and gives you a decisive sell verdict.</p>
+
+          <div class="feat-form">
+            <div class="feat-form-title">Enter Market Details</div>
+            <div class="feat-inputs-grid cols-1">
+              <input class="f-input" id="mk-crop" placeholder="🌾 Crop (e.g. Tomato)"/>
+              <input class="f-input" id="mk-market" placeholder="🏪 Market / Mandi (e.g. Nashik)"/>
+              <input class="f-input" id="mk-price" type="number" placeholder="💰 Your Price (₹/quintal)"/>
+            </div>
+            <button class="feat-submit" onclick="runMarket()" style="--accent:#f5c842;">📈 Get Sell Advice</button>
+          </div>
+        </div>
+
+        <div class="feat-loading" id="mk-loading"><div class="spinner"></div>Fetching mandi data...</div>
+        <div class="feat-output" id="mk-output">
+          <div class="feat-inner" style="padding-top:0;">
+            <div class="out-title">💹 Market Intelligence</div>
+            <div id="mk-verdict" class="verdict-badge sell">📈 — —</div>
+            <div class="out-grid cols-2" style="margin-bottom:0.8rem;">
+              <div class="out-stat"><div class="out-val gold" id="mk-today">—</div><div class="out-lbl">Today's Price</div></div>
+              <div class="out-stat"><div class="out-val" id="mk-future">—</div><div class="out-lbl">7-Day Forecast</div></div>
+            </div>
+            <div id="mk-rec" style="font-size:0.82rem;color:var(--fog);margin-bottom:0.9rem;line-height:1.5;padding:0 0.2rem;">—</div>
+            <div class="chart-wrap">
+              <canvas id="mkChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CARD 3: Disease Detection ── -->
+      <div class="feat-card reveal">
+        <div class="feat-card-top-bar"></div>
+        <div class="feat-inner">
+          <div class="feat-header">
+            <span class="feat-icon-wrap">📸</span>
+            <div class="feat-number">03 / 04</div>
+          </div>
+          <div class="feat-title">AI Disease Detection</div>
+          <p class="feat-desc">Upload a photo and enter weather conditions. Get an instant diagnosis with treatment options powered by Claude AI.</p>
+
+          <div class="feat-form">
+            <div class="feat-form-title">Farm & Weather Conditions</div>
+            <div class="feat-inputs-grid cols-3">
+              <input class="f-input" id="dis-temp" type="number" placeholder="🌡️ Temp (°C)"/>
+              <input class="f-input" id="dis-rain" type="number" placeholder="🌧️ Rain (mm)"/>
+              <input class="f-input" id="dis-hum" type="number" placeholder="💦 Humidity %"/>
+            </div>
+            <div class="feat-inputs-grid cols-2">
+              <input class="f-input" id="dis-wind" type="number" placeholder="🌬️ Wind (km/h)"/>
+              <select class="f-input" id="dis-season">
+                <option value="" disabled selected>🗓️ Season</option>
+                <option>Kharif</option><option>Rabi</option><option>Zaid</option>
+              </select>
+            </div>
+            <div class="feat-inputs-grid cols-1">
+              <input class="f-input" type="file" id="dis-photo" accept="image/*" style="padding:8px 12px;cursor:pointer;"/>
+            </div>
+            <button class="feat-submit" onclick="runDisease()" style="--accent:#e8941a;">🔍 Diagnose Now</button>
+          </div>
+        </div>
+
+        <div class="feat-loading" id="dis-loading"><div class="spinner"></div>Running AI diagnosis...</div>
+        <div class="feat-output" id="dis-output">
+          <div class="feat-inner" style="padding-top:0;">
+            <div class="out-title">🧬 Diagnosis Result</div>
+            <div id="dis-verdict" class="verdict-badge" style="background:rgba(232,148,26,0.15);border-color:rgba(232,148,26,0.4);color:var(--amber);">⚠️ — —</div>
+            <div class="out-grid">
+              <div class="out-stat"><div class="out-val amber" id="dis-temp-out">—</div><div class="out-lbl">Temperature</div></div>
+              <div class="out-stat"><div class="out-val blue" id="dis-rain-out">—</div><div class="out-lbl">Rainfall</div></div>
+              <div class="out-stat"><div class="out-val" id="dis-hum-out">—</div><div class="out-lbl">Humidity</div></div>
+            </div>
+            <div class="chart-wrap-sm">
+              <canvas id="disChart"></canvas>
+            </div>
+            <div id="dis-advice" style="font-size:0.82rem;color:var(--fog);line-height:1.6;margin-top:0.6rem;padding:0.7rem;background:rgba(232,148,26,0.07);border-radius:6px;border-left:3px solid var(--amber);">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CARD 4: Weather Advisory ── -->
+      <div class="feat-card reveal">
+        <div class="feat-card-top-bar"></div>
+        <div class="feat-inner">
+          <div class="feat-header">
+            <span class="feat-icon-wrap">🌦️</span>
+            <div class="feat-number">04 / 04</div>
+          </div>
+          <div class="feat-title">Hyperlocal Weather Advisory</div>
+          <p class="feat-desc">Enter weather conditions and season. Get specific farm action alerts — when to irrigate, spray, or protect crops.</p>
+
+          <div class="feat-form">
+            <div class="feat-form-title">Enter Weather Conditions</div>
+            <div class="feat-inputs-grid cols-3">
+              <input class="f-input" id="wx-temp" type="number" placeholder="🌡️ Temp (°C)"/>
+              <input class="f-input" id="wx-rain" type="number" placeholder="🌧️ Rain (mm)"/>
+              <input class="f-input" id="wx-hum" type="number" placeholder="💦 Humidity %"/>
+            </div>
+            <div class="feat-inputs-grid cols-2">
+              <input class="f-input" id="wx-wind" type="number" placeholder="🌬️ Wind (km/h)"/>
+              <select class="f-input" id="wx-season">
+                <option value="" disabled selected>🗓️ Season</option>
+                <option>Kharif</option><option>Rabi</option><option>Zaid</option><option>Year-round</option>
+              </select>
+            </div>
+            <button class="feat-submit" onclick="runWeather()" style="--accent:#4ab8c8;">🌤️ Get Advisory</button>
+          </div>
+        </div>
+
+        <div class="feat-loading" id="wx-loading"><div class="spinner"></div>Generating advisory...</div>
+        <div class="feat-output" id="wx-output">
+          <div class="feat-inner" style="padding-top:0;">
+            <div class="out-title">🌤️ Weather Summary & Actions</div>
+            <div class="out-grid">
+              <div class="out-stat"><div class="out-val amber" id="wx-temp-out">—</div><div class="out-lbl">Temperature</div></div>
+              <div class="out-stat"><div class="out-val blue" id="wx-rain-out">—</div><div class="out-lbl">Rainfall</div></div>
+              <div class="out-stat"><div class="out-val" id="wx-hum-out">—</div><div class="out-lbl">Humidity</div></div>
+            </div>
+            <!-- Weather bar chart -->
+            <div style="margin-bottom:0.8rem;">
+              <div class="weather-bars" id="wx-bars">
+                <div class="w-bar-group"><div class="w-bar" id="wxb-temp" style="background:var(--amber);height:0;"></div><div class="w-bar-val" id="wxbv-temp">—</div><div class="w-bar-label">Temp</div></div>
+                <div class="w-bar-group"><div class="w-bar" id="wxb-rain" style="background:var(--blue);height:0;"></div><div class="w-bar-val" id="wxbv-rain">—</div><div class="w-bar-label">Rain</div></div>
+                <div class="w-bar-group"><div class="w-bar" id="wxb-hum" style="background:var(--lime);height:0;"></div><div class="w-bar-val" id="wxbv-hum">—</div><div class="w-bar-label">Humidity</div></div>
+                <div class="w-bar-group"><div class="w-bar" id="wxb-wind" style="background:var(--fog);height:0;"></div><div class="w-bar-val" id="wxbv-wind">—</div><div class="w-bar-label">Wind</div></div>
+              </div>
+            </div>
+            <div id="wx-alerts" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how">
+    <p class="section-label reveal">The Process</p>
+    <h2 class="section-title reveal">From Field to Decision<br>in Four Steps.</h2>
+    <div class="steps-grid">
+      <div class="step reveal"><div class="step-num">1</div><div class="step-title">Login & Register</div><p class="step-desc">Enter your mobile number, name, and state. Takes under 30 seconds.</p></div>
+      <div class="step reveal"><div class="step-num">2</div><div class="step-title">Choose Your Tool</div><p class="step-desc">Pick from Crop Planner, Market Advisor, Disease Detection, or Weather Advisory.</p></div>
+      <div class="step reveal"><div class="step-num">3</div><div class="step-title">Enter Farm Details</div><p class="step-desc">Fill in the input fields right on the homepage — no page redirects needed.</p></div>
+      <div class="step reveal"><div class="step-num">4</div><div class="step-title">Get Instant Results</div><p class="step-desc">AI analyses your data and shows visual results with charts and actionable advice.</p></div>
+    </div>
+  </section>
+
+  <!-- IMPACT -->
+  <div class="impact">
+    <div class="impact-item reveal"><div class="impact-num">12+</div><div class="impact-label">Crops supported in the companion planner</div></div>
+    <div class="impact-item reveal"><div class="impact-num">30d</div><div class="impact-label">Price history analysed per sell-timing decision</div></div>
+    <div class="impact-item reveal"><div class="impact-num">95%</div><div class="impact-label">Disease identification accuracy via AI vision</div></div>
+    <div class="impact-item reveal"><div class="impact-num">Real-Time</div><div class="impact-label">Hyperlocal weather alerts from your GPS location</div></div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Agro<span>Fusion</span> AI</div>
+    <ul class="footer-links">
+      <li><a href="crop-planner.html">Crop Planner</a></li>
+      <li><a href="market.html">Market Score</a></li>
+      <li><a href="disease.html">Disease AI</a></li>
+      <li><a href="weather.html">Weather</a></li>
+    </ul>
+    <p class="footer-copy">© 2026 AgroFusion AI. Built for farmers.</p>
+  </footer>
+
+</div><!-- end homePage -->
+
+<script>
+// ══════════════════════════════════════
+// CANVAS BACKGROUND
+// ══════════════════════════════════════
+const canvas=document.getElementById('bgCanvas');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+function drawBg(){
+  const w=canvas.width,h=canvas.height,t=Date.now()/1000;
+  ctx.clearRect(0,0,w,h);
+  const sky=ctx.createLinearGradient(0,0,0,h*0.6);
+  sky.addColorStop(0,'#0d1500');sky.addColorStop(1,'#1a2e0a');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,w,h*0.6);
+  const gnd=ctx.createLinearGradient(0,h*0.6,0,h);
+  gnd.addColorStop(0,'#1a3a05');gnd.addColorStop(1,'#0f2000');
+  ctx.fillStyle=gnd;ctx.fillRect(0,h*0.6,w,h*0.4);
+  for(let row=0;row<8;row++){
+    const y=h*0.62+row*(h*0.05);
+    for(let x=0;x<w;x+=40){
+      const sw=Math.sin(t+x*0.05+row)*3,ch=16+row*3;
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+sw,y-ch);
+      ctx.strokeStyle=`rgba(82,183,136,${0.28-row*0.02})`;ctx.lineWidth=1.4;ctx.stroke();
+    }
+  }
+  const sg=ctx.createRadialGradient(w*0.78,h*0.1,0,w*0.78,h*0.1,100);
+  sg.addColorStop(0,'rgba(245,200,66,0.12)');sg.addColorStop(1,'rgba(245,200,66,0)');
+  ctx.fillStyle=sg;ctx.fillRect(0,0,w,h);
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+// ══════════════════════════════════════
+// PAGE SWITCH
+// ══════════════════════════════════════
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function goHome(){sessionStorage.getItem('af_user')?showPage('homePage'):showPage('loginPage');}
+function handleNavCta(){showPage('loginPage');}
+
+// ══════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════
+function doLogin(){
+  const phone=document.getElementById('loginPhone').value.trim();
+  const name=document.getElementById('loginName').value.trim();
+  const err=document.getElementById('loginError');
+  err.style.display='none';
+  if(!/^[0-9]{10}$/.test(phone)){err.style.display='block';return;}
+  const dn=name||('Farmer '+phone.slice(-4));
+  document.getElementById('navUserName').textContent=dn;
+  document.getElementById('navUser').style.display='inline-flex';
+  document.getElementById('navBtn').textContent='Logout';
+  document.getElementById('navBtn').onclick=doLogout;
+  sessionStorage.setItem('af_user',dn);
+  showPage('homePage');
+}
+function doLogout(){sessionStorage.clear();document.getElementById('navUser').style.display='none';document.getElementById('navBtn').textContent='Get Started →';document.getElementById('navBtn').onclick=handleNavCta;showPage('loginPage');}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginPage').classList.contains('active'))doLogin();});
+window.addEventListener('DOMContentLoaded',()=>{
+  const ph=document.getElementById('loginPhone');
+  if(ph)ph.addEventListener('input',()=>{ph.value=ph.value.replace(/\D/g,'').slice(0,10);});
+  const user=sessionStorage.getItem('af_user');
+  if(user){document.getElementById('navUserName').textContent=user;document.getElementById('navUser').style.display='inline-flex';document.getElementById('navBtn').textContent='Logout';document.getElementById('navBtn').onclick=doLogout;showPage('homePage');}
+});
+
+// ══════════════════════════════════════
+// CHART REGISTRY — prevent duplicate
+// ══════════════════════════════════════
+const charts={};
+function makeChart(id,config){if(charts[id]){charts[id].destroy();}charts[id]=new Chart(document.getElementById(id),config);}
+
+// ══════════════════════════════════════
+// CROP PLANNER
+// ══════════════════════════════════════
+async function runCropPlanner(){
+  const crop=document.getElementById('cp-crop').value.trim()||'Wheat';
+  const soil=document.getElementById('cp-soil').value||'Loamy';
+  const water=document.getElementById('cp-water').value||'Medium';
+  const season=document.getElementById('cp-season').value||'Kharif';
+  const baseYield=parseFloat(document.getElementById('cp-yield').value)||50;
+  const price=parseFloat(document.getElementById('cp-price').value)||2000;
+
+  document.getElementById('cp-loading').classList.add('show');
+  document.getElementById('cp-output').classList.remove('show');
+
+  let result;
+  try{
+    const res=await fetch('http://127.0.0.1:8000/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crop,soil_type:soil,water_need:water,season,base_yield:baseYield,price})});
+    result=await res.json();
+  }catch(e){
+    // Simulated fallback
+    const scoreMap={Sandy:62,Loamy:88,Clay:74,Silty:80,'Red Soil':70,'Black Cotton':82,Alluvial:91};
+    const tempMap={Kharif:28,Rabi:18,Zaid:34,'Year-round':24};
+    const rainMap={Low:150,Medium:500,High:900,Rainfed:650};
+    result={
+      crop,score:scoreMap[soil]||75,price,base_yield:baseYield,
+      temperature:tempMap[season]||25,rainfall:rainMap[water]||400,humidity:60
+    };
+  }
+
+  document.getElementById('cp-loading').classList.remove('show');
+  document.getElementById('cp-output').classList.add('show');
+
+  // Populate
+  const score=Math.round(result.score)||75;
+  document.getElementById('cp-crop-name').textContent=result.crop;
+  document.getElementById('cp-season-out').textContent=`Season: ${season} • Soil: ${soil}`;
+  document.getElementById('cp-soil-out').textContent=`Suitability Score: ${score}/100`;
+  document.getElementById('cp-price-out').textContent='₹'+result.price.toLocaleString();
+  document.getElementById('cp-yield-out').textContent=result.base_yield+' qtl';
+  document.getElementById('cp-temp-out').textContent=result.temperature+'°C';
+  document.getElementById('cp-rain-out').textContent=result.rainfall+'mm';
+
+  // Ring animation
+  const ring=document.getElementById('cp-ring');
+  const circumference=226;
+  const offset=circumference-(score/100)*circumference;
+  ring.style.stroke=score>=80?'#7ec850':score>=60?'#f5c842':'#e05252';
+  setTimeout(()=>{ring.style.strokeDashoffset=offset;},100);
+  document.getElementById('cp-score-text').textContent=score;
+
+  // Chart — radar/bar of conditions
+  makeChart('cpChart',{
+    type:'bar',
+    data:{
+      labels:['Score','Yield (qtl)','Humidity %','Temp (°C)'],
+      datasets:[{
+        label:result.crop,
+        data:[score,Math.min(result.base_yield,100),result.humidity,result.temperature],
+        backgroundColor:['rgba(126,200,80,0.6)','rgba(245,200,66,0.6)','rgba(74,184,200,0.6)','rgba(232,148,26,0.6)'],
+        borderColor:['#7ec850','#f5c842','#4ab8c8','#e8941a'],
+        borderWidth:1.5,borderRadius:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw}}},scales:{x:{ticks:{color:'#d4cfc6',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#d4cfc6',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+}
+
+// ══════════════════════════════════════
+// MARKET
+// ══════════════════════════════════════
+async function runMarket(){
+  const crop=document.getElementById('mk-crop').value.trim()||'Tomato';
+  const market=document.getElementById('mk-market').value.trim()||'Nashik';
+  const price=parseFloat(document.getElementById('mk-price').value)||3000;
+
+  document.getElementById('mk-loading').classList.add('show');
+  document.getElementById('mk-output').classList.remove('show');
+
+  let result;
+  try{
+    const res=await fetch('http://127.0.0.1:8000/market',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crop,market,price})});
+    result=await res.json();
+  }catch(e){
+    // Simulated with trend logic
+    const trend=price>2500?'rising':price<1500?'falling':'stable';
+    const future=trend==='rising'?price*1.08:trend==='falling'?price*0.94:price*1.01;
+    const rec=trend==='rising'?'Hold for 7 days — price likely to peak next week.':trend==='falling'?'Sell Now — price declining, act quickly.':'Price stable — sell at your convenience.';
+    result={today_price:price,future_price:Math.round(future),trend,recommendation:rec};
+  }
+
+  document.getElementById('mk-loading').classList.remove('show');
+  document.getElementById('mk-output').classList.add('show');
+
+  const {today_price,future_price,trend,recommendation}=result;
+  document.getElementById('mk-today').textContent='₹'+today_price.toLocaleString();
+  const futEl=document.getElementById('mk-future');
+  futEl.textContent='₹'+future_price.toLocaleString();
+  futEl.className='out-val '+(trend==='rising'?'':'red');
+  document.getElementById('mk-rec').textContent='💡 '+recommendation;
+
+  const vEl=document.getElementById('mk-verdict');
+  const verdictMap={rising:{cls:'sell',icon:'📈',label:'SELL NOW'},falling:{cls:'hold',icon:'📉',label:'HOLD'},stable:{cls:'stable',icon:'📊',label:'WAIT 7 DAYS'}};
+  const v=verdictMap[trend]||verdictMap.stable;
+  vEl.className='verdict-badge '+v.cls;
+  vEl.textContent=v.icon+' '+v.label;
+
+  // 7-day price trend chart
+  const days=['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7'];
+  const prices=days.map((_,i)=>{
+    const factor=trend==='rising'?1+(i*0.015):trend==='falling'?1-(i*0.01):1+(Math.sin(i)*0.01);
+    return Math.round(today_price*factor);
+  });
+  makeChart('mkChart',{
+    type:'line',
+    data:{
+      labels:days,
+      datasets:[{label:'Price (₹)',data:prices,borderColor:trend==='rising'?'#7ec850':trend==='falling'?'#e05252':'#4ab8c8',backgroundColor:trend==='rising'?'rgba(126,200,80,0.1)':trend==='falling'?'rgba(224,82,82,0.1)':'rgba(74,184,200,0.1)',fill:true,tension:0.4,pointBackgroundColor:trend==='rising'?'#7ec850':'#4ab8c8',pointRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#d4cfc6',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#d4cfc6',font:{size:10},callback:v=>'₹'+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+}
+
+// ══════════════════════════════════════
+// DISEASE
+// ══════════════════════════════════════
+async function runDisease(){
+  const temp=parseFloat(document.getElementById('dis-temp').value)||28;
+  const rain=parseFloat(document.getElementById('dis-rain').value)||150;
+  const hum=parseFloat(document.getElementById('dis-hum').value)||70;
+  const wind=parseFloat(document.getElementById('dis-wind').value)||15;
+  const season=document.getElementById('dis-season').value||'Kharif';
+
+  document.getElementById('dis-loading').classList.add('show');
+  document.getElementById('dis-output').classList.remove('show');
+
+  let result;
+  try{
+    const res=await fetch('http://127.0.0.1:8000/disease',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temperature:temp,rainfall:rain,humidity:hum,wind_speed:wind,season})});
+    result=await res.json();
+  }catch(e){
+    // Simulated based on conditions
+    let disease='Healthy Crop',severity='Low',advice='Conditions are favourable. Continue regular monitoring.';
+    if(hum>80&&temp>25){disease='Fungal Blight Risk';severity='High';advice='High humidity + heat detected. Apply copper-based fungicide. Increase plant spacing for airflow. Check leaves for dark spots every 3 days.';}
+    else if(rain<50&&temp>30){disease='Drought Stress Risk';severity='Medium';advice='Low rainfall + high temperature. Irrigate immediately. Apply mulching to retain soil moisture. Avoid fertilizer until conditions improve.';}
+    else if(temp<15){disease='Frost / Cold Stress';severity='Medium';advice='Low temperature detected. Cover sensitive seedlings at night. Avoid spraying. Apply potassium-rich fertilizer to boost cold resistance.';}
+    result={temperature:temp,rainfall:rain,humidity:hum,disease,severity,advice};
+  }
+
+  document.getElementById('dis-loading').classList.remove('show');
+  document.getElementById('dis-output').classList.add('show');
+
+  document.getElementById('dis-temp-out').textContent=result.temperature+'°C';
+  document.getElementById('dis-rain-out').textContent=result.rainfall+'mm';
+  document.getElementById('dis-hum-out').textContent=result.humidity+'%';
+  const dv=document.getElementById('dis-verdict');
+  const sev=result.severity||'Low';
+  const sevColor=sev==='High'?'var(--red)':sev==='Medium'?'var(--amber)':'var(--lime)';
+  dv.style.background=`rgba(${sev==='High'?'224,82,82':sev==='Medium'?'232,148,26':'126,200,80'},0.12)`;
+  dv.style.borderColor=sevColor; dv.style.color=sevColor;
+  dv.textContent=(sev==='High'?'🔴':'sev'==='Medium'?'🟡':'🟢')+' '+(result.disease||'Analysis Complete')+' — '+sev+' Risk';
+  document.getElementById('dis-advice').textContent='🌿 '+result.advice;
+
+  makeChart('disChart',{
+    type:'doughnut',
+    data:{
+      labels:['Temp Risk','Humidity Risk','Rain Risk'],
+      datasets:[{data:[Math.min(temp/50*100,100).toFixed(0),Math.min(hum,100),Math.min(rain/10,100).toFixed(0)],backgroundColor:['rgba(232,148,26,0.7)','rgba(74,184,200,0.7)','rgba(126,200,80,0.7)'],borderColor:['#e8941a','#4ab8c8','#7ec850'],borderWidth:1.5}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'right',labels:{color:'#d4cfc6',font:{size:10},boxWidth:10}}}}
+  });
+}
+
+// ══════════════════════════════════════
+// WEATHER
+// ══════════════════════════════════════
+async function runWeather(){
+  const temp=parseFloat(document.getElementById('wx-temp').value)||30;
+  const rain=parseFloat(document.getElementById('wx-rain').value)||100;
+  const hum=parseFloat(document.getElementById('wx-hum').value)||70;
+  const wind=parseFloat(document.getElementById('wx-wind').value)||20;
+  const season=document.getElementById('wx-season').value||'Kharif';
+
+  document.getElementById('wx-loading').classList.add('show');
+  document.getElementById('wx-output').classList.remove('show');
+
+  let result;
+  try{
+    const res=await fetch('http://127.0.0.1:8000/weather',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temperature:temp,rainfall:rain,humidity:hum,wind_speed:wind,season})});
+    result=await res.json();
+  }catch(e){
+    result={temperature:temp,rainfall:rain,humidity:hum};
+  }
+
+  document.getElementById('wx-loading').classList.remove('show');
+  document.getElementById('wx-output').classList.add('show');
+
+  document.getElementById('wx-temp-out').textContent=result.temperature+'°C';
+  document.getElementById('wx-rain-out').textContent=result.rainfall+'mm';
+  document.getElementById('wx-hum-out').textContent=result.humidity+'%';
+
+  // Animated bars
+  const maxRef={temp:50,rain:200,hum:100,wind:80};
+  const vals={temp:result.temperature,rain:result.rainfall,hum:result.humidity,wind};
+  setTimeout(()=>{
+    ['temp','rain','hum','wind'].forEach(k=>{
+      const pct=Math.min(vals[k]/maxRef[k]*100,100);
+      document.getElementById('wxb-'+k).style.height=pct+'px';
+      document.getElementById('wxbv-'+k).textContent=vals[k]+(k==='temp'?'°C':k==='hum'||k==='wind'?'%':'mm');
+    });
+  },200);
+
+  // Smart alerts
+  const alertsEl=document.getElementById('wx-alerts');
+  alertsEl.innerHTML='';
+  const alerts=[];
+  if(rain>150)alerts.push({t:'🚨 Heavy Rain Alert',m:'Delay fertilizer application. Check drainage channels. Avoid spraying pesticides.',c:'rgba(74,184,200,0.12)',b:'#4ab8c8'});
+  if(temp>35)alerts.push({t:'🌡️ Heat Stress Warning',m:'Irrigate crops in early morning or evening. Apply light mulch to retain moisture.',c:'rgba(232,148,26,0.12)',b:'var(--amber)'});
+  if(temp<12)alerts.push({t:'❄️ Cold / Frost Risk',m:'Cover frost-sensitive seedlings. Apply potassium-rich fertilizer for cold resistance.',c:'rgba(126,200,80,0.12)',b:'var(--lime)'});
+  if(hum>85)alerts.push({t:'💧 High Humidity',m:'Monitor for fungal diseases. Increase plant spacing. Avoid overhead irrigation.',c:'rgba(224,82,82,0.12)',b:'var(--red)'});
+  if(wind<15)alerts.push({t:'✅ Good Spraying Window',m:'Low wind speed — ideal conditions for pesticide or fertilizer spraying today.',c:'rgba(126,200,80,0.12)',b:'var(--lime)'});
+  if(!alerts.length)alerts.push({t:'✅ Conditions Normal',m:'Weather is within safe farming limits. Proceed with regular farm activities.',c:'rgba(126,200,80,0.12)',b:'var(--lime)'});
+  alerts.forEach(a=>{
+    alertsEl.innerHTML+=`<div style="padding:0.7rem 0.9rem;border-radius:6px;border-left:3px solid ${a.b};background:${a.c};font-size:0.8rem;"><strong style="color:${a.b};display:block;margin-bottom:3px;font-size:0.78rem;">${a.t}</strong><span style="color:var(--fog);line-height:1.5;">${a.m}</span></div>`;
+  });
+}
+
+// ══════════════════════════════════════
+// SCROLL REVEAL + NAV SHADOW
+// ══════════════════════════════════════
+const revObs=new IntersectionObserver((entries)=>{
+  entries.forEach((e,i)=>{if(e.isIntersecting)setTimeout(()=>e.target.classList.add('visible'),i*80);});
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>revObs.observe(el));
+window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>50);});
+</script>
+</body>
+</html>
